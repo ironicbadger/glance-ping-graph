@@ -1,0 +1,12 @@
+.git
+.gitignore
+.github
+README.md
+LICENSE
+__pycache__
+*.py[cod]
+.env
+.venv
+.idea
+.vscode
+.DS_Store
