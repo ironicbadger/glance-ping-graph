@@ -138,9 +138,12 @@ def ping_worker():
         time.sleep(INTERVAL)
 
 
-def svg_smooth_path(values: list[float | None], width: float = 100, height: float = 30) -> str:
-    """Generate smooth SVG path using cubic bezier curves."""
-    # Build list of (x, y) points, skipping None values
+def svg_smooth_path(values: list[float | None], width: float = 100, height: float = 30, max_points: int = 0) -> str:
+    """Generate smooth SVG path using cubic bezier curves.
+    
+    If max_points > 0, the x-axis is scaled as if there were max_points values,
+    with the actual values aligned to the right side of the graph.
+    """
     valid_values = [v for v in values if v is not None]
     if len(valid_values) < 2:
         return ""
@@ -151,11 +154,16 @@ def svg_smooth_path(values: list[float | None], width: float = 100, height: floa
     if max_v == min_v:
         max_v = min_v + 1
 
-    step = width / (len(values) - 1) if len(values) > 1 else width
+    # Use max_points for scaling if provided, so partial data aligns to the right
+    total_points = max(max_points, len(values))
+    step = width / (total_points - 1) if total_points > 1 else width
+    # Offset to right-align the data when we have fewer points than max_points
+    offset = (total_points - len(values)) * step if max_points > 0 else 0
+    
     points = []
     for i, v in enumerate(values):
         if v is not None:
-            x = i * step
+            x = offset + i * step
             y = ((max_v - v) / (max_v - min_v)) * h + padding
             points.append((x, y))
 
@@ -197,7 +205,7 @@ def render_html() -> str:
         avg_v = sum(valid) / len(valid) if valid else 0
         loss = (len(values) - len(valid)) / len(values) * 100 if values else 0
 
-        path_d = svg_smooth_path(values)
+        path_d = svg_smooth_path(values, max_points=HISTORY)
         loss_html = (
             f'<span style="color: #ff6b6b;">loss: {loss:.0f}%</span>' if loss > 0 else ""
         )
@@ -335,7 +343,7 @@ def detail():
         avg_v = sum(valid) / len(valid) if valid else 0
         loss = (len(values) - len(valid)) / len(values) * 100 if values else 0
 
-        path_d = svg_smooth_path(values, width=800, height=120)
+        path_d = svg_smooth_path(values, width=800, height=120, max_points=HISTORY)
         loss_html = f'<span class="loss">loss: {loss:.0f}%</span>' if loss > 0 else ""
 
         html.append(f"""
